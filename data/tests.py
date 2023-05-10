@@ -95,7 +95,7 @@ def test_HumanEval_47_fix():
 
 def test_HumanEval_50_fix():
     # the original prompt doesn't have examples in the docstring
-    # also the prompt is ambiguous in "encode_shift", no explicitly specifying lowercase or uppercase for input string
+    # also the prompt is ambiguous in "encode_shift", not explicitly specifying lowercase or uppercase for input string
     with jsonlines.open("human-eval-v2-20210705.jsonl") as reader:
         reader_list = list(reader)
         original_prompt = reader_list[50]["prompt"]
@@ -113,6 +113,29 @@ def test_HumanEval_50_fix():
         solution = reader_list[50]["canonical_solution"]
         func_def_code = fixed_prompt + solution
         exec(func_def_code + "\n\nassert decode_shift('abc') == 'vwx'")
+
+
+def test_HumanEval_57_fix():
+    # the original prompt is ambiguous, not explicitly specifying how to handle non-strictly increasing or decreasing input
+    # also the prompt a typo in "Return True is list elements are monotonically increasing or decreasing."
+    with jsonlines.open("human-eval-v2-20210705.jsonl") as reader:
+        reader_list = list(reader)
+        original_prompt = reader_list[57]["prompt"]
+        assert "Return True is list elements are monotonically increasing or decreasing." in original_prompt
+
+    # the fixed prompt is
+    # "Return True if list elements are monotonically increasing or decreasing.
+    # Still return True when list elements are non-strictly monotonically increasing or decreasing."
+    with jsonlines.open("human-eval-enhanced-202305.jsonl") as reader:
+        reader_list = list(reader)
+        fixed_prompt = reader_list[57]["prompt"]
+        assert "Return True if list elements are monotonically increasing or decreasing." in fixed_prompt
+        assert "Still return True when list elements are non-strictly monotonically increasing or decreasing." in fixed_prompt
+
+        # make sure the function definition is correct
+        solution = reader_list[57]["canonical_solution"]
+        func_def_code = fixed_prompt + solution
+        exec(func_def_code + "\n\nassert monotonic([1, 2, 3]) is True")
 
 
 def main():
