@@ -138,12 +138,33 @@ def test_HumanEval_57_fix():
         exec(func_def_code + "\n\nassert monotonic([1, 2, 3]) is True")
 
 
+def test_HumanEval_67_fix():
+    # the original prompt has a typo in "for examble"
+    with jsonlines.open("human-eval-v2-20210705.jsonl") as reader:
+        reader_list = list(reader)
+        original_prompt = reader_list[67]["prompt"]
+        assert "for examble" in original_prompt
+
+    # the fixed prompt is "for example"
+    with jsonlines.open("human-eval-enhanced-202305.jsonl") as reader:
+        reader_list = list(reader)
+        fixed_prompt = reader_list[67]["prompt"]
+        assert "for example" in fixed_prompt
+
+        # make sure the function definition is correct
+        solution = reader_list[67]["canonical_solution"]
+        func_def_code = fixed_prompt + solution
+        exec(func_def_code)
+
+
 def main():
     test_HumanEval_32_fix()
     test_HumanEval_38_fix()
     test_HumanEval_41_fix()
     test_HumanEval_47_fix()
     test_HumanEval_50_fix()
+    test_HumanEval_57_fix()
+    test_HumanEval_67_fix()
 
 
 if __name__ == "__main__":
