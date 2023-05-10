@@ -157,6 +157,26 @@ def test_HumanEval_67_fix():
         exec(func_def_code)
 
 
+def test_HumanEval_83_fix():
+    # the original prompt doesn't have examples in the docstring
+    # which causes inconsistency in the Data Set
+    with jsonlines.open("human-eval-v2-20210705.jsonl") as reader:
+        reader_list = list(reader)
+        original_prompt = reader_list[83]["prompt"]
+        assert ">>> starts_one_ends" not in original_prompt
+
+    # the fixed prompt has 1 exmaple in the docstring of starts_one_ends
+    with jsonlines.open("human-eval-enhanced-202305.jsonl") as reader:
+        reader_list = list(reader)
+        fixed_prompt = reader_list[83]["prompt"]
+        assert ">>> starts_one_ends(2)\n    18\n" in fixed_prompt
+
+        # make sure the added example is correct
+        solution = reader_list[83]["canonical_solution"]
+        func_def_code = fixed_prompt + solution
+        exec(func_def_code + "\n\nassert starts_one_ends(2) == 18")
+
+
 def main():
     test_HumanEval_32_fix()
     test_HumanEval_38_fix()
