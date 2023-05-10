@@ -22,8 +22,38 @@ def test_HumanEval_32_fix():
         assert "only one zero point" in fixed_prompt
 
 
+def test_HumanEval_38_fix():
+    # the original prompt doesn't have examples in the docstring
+    # which causes inconsistency in the Data Set
+    with jsonlines.open("human-eval-v2-20210705.jsonl") as reader:
+        reader_list = list(reader)
+        original_prompt = reader_list[38]["prompt"]
+        assert ">>> encode_cyclic" not in original_prompt
+        assert ">>> decode_cyclic" not in original_prompt
+
+    # the fixed prompt has 2 examples each for encode_cyclic and decode_cyclic
+    with jsonlines.open("human-eval-enhanced-202305.jsonl") as reader:
+        reader_list = list(reader)
+        fixed_prompt = reader_list[38]["prompt"]
+        assert ">>> encode_cyclic('abc')\n    'bca'\n" in fixed_prompt
+        assert ">>> encode_cyclic('ab')\n    'ab'\n" in fixed_prompt
+        assert ">>> decode_cyclic('bca')\n    'abc'\n" in fixed_prompt
+        assert ">>> decode_cyclic('ab')\n    'ab'\n" in fixed_prompt
+
+        # make sure the added examples are correct
+        solution = reader_list[38]["canonical_solution"]
+        func_def_code = fixed_prompt + solution
+        exec(func_def_code + "\n\nassert encode_cyclic('abc') == 'bca'")
+        exec(func_def_code + "\n\nassert encode_cyclic('ab') == 'ab'")
+
+        # decode_cyclic(string) is equivalent to encode_cyclic(encode_cyclics(string))
+        exec(func_def_code + "\n\nassert encode_cyclic(encode_cyclic('bca')) == 'abc'")
+        exec(func_def_code + "\n\nassert encode_cyclic(encode_cyclic('ab')) == 'ab'")
+
+
 def main():
     test_HumanEval_32_fix()
+    test_HumanEval_38_fix()
 
 
 if __name__ == "__main__":
