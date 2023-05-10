@@ -1,7 +1,7 @@
 # The tests can be run as a Script, use the Command "python tests.py",
 # alternatively, they can be run as a Module using pytest
 # If you wish to use pytest, you can install it by "pip3 install pytest",
-# uncomment the import pytest line below, and use the Command "python -m pytest -v tests.py"
+# uncomment the import pytest line below, and use the Command "python -m pytest -vv tests.py"
 
 # import pytest
 import jsonlines
@@ -21,6 +21,11 @@ def test_HumanEval_32_fix():
         assert "only only zero point" not in fixed_prompt
         assert "only one zero point" in fixed_prompt
 
+        # make sure the function definition is correct
+        solution = reader_list[38]["canonical_solution"]
+        func_def_code = fixed_prompt + solution
+        exec(func_def_code)
+
 
 def test_HumanEval_38_fix():
     # the original prompt doesn't have examples in the docstring
@@ -28,32 +33,94 @@ def test_HumanEval_38_fix():
     with jsonlines.open("human-eval-v2-20210705.jsonl") as reader:
         reader_list = list(reader)
         original_prompt = reader_list[38]["prompt"]
-        assert ">>> encode_cyclic" not in original_prompt
         assert ">>> decode_cyclic" not in original_prompt
 
-    # the fixed prompt has 2 examples each for encode_cyclic and decode_cyclic
+    # the fixed prompt has 2 examples in the docstring of decode_cyclic
+    # we didn't add examples for encode_cyclic to maintain consistency with other tasks like 32
     with jsonlines.open("human-eval-enhanced-202305.jsonl") as reader:
         reader_list = list(reader)
         fixed_prompt = reader_list[38]["prompt"]
-        assert ">>> encode_cyclic('abc')\n    'bca'\n" in fixed_prompt
-        assert ">>> encode_cyclic('ab')\n    'ab'\n" in fixed_prompt
         assert ">>> decode_cyclic('bca')\n    'abc'\n" in fixed_prompt
         assert ">>> decode_cyclic('ab')\n    'ab'\n" in fixed_prompt
+        assert ">>> encode_cyclic" not in fixed_prompt
 
         # make sure the added examples are correct
         solution = reader_list[38]["canonical_solution"]
         func_def_code = fixed_prompt + solution
-        exec(func_def_code + "\n\nassert encode_cyclic('abc') == 'bca'")
-        exec(func_def_code + "\n\nassert encode_cyclic('ab') == 'ab'")
 
         # decode_cyclic(string) is equivalent to encode_cyclic(encode_cyclics(string))
         exec(func_def_code + "\n\nassert encode_cyclic(encode_cyclic('bca')) == 'abc'")
         exec(func_def_code + "\n\nassert encode_cyclic(encode_cyclic('ab')) == 'ab'")
 
 
+def test_HumanEval_41_fix():
+    # the original prompt doesn't have examples in the docstring
+    # which causes inconsistency in the Data Set
+    with jsonlines.open("human-eval-v2-20210705.jsonl") as reader:
+        reader_list = list(reader)
+        original_prompt = reader_list[41]["prompt"]
+        assert ">>> car_race_collision" not in original_prompt
+
+    # the fixed prompt has 1 example
+    with jsonlines.open("human-eval-enhanced-202305.jsonl") as reader:
+        reader_list = list(reader)
+        fixed_prompt = reader_list[41]["prompt"]
+        assert ">>> car_race_collision(3)\n    9\n" in fixed_prompt
+
+        # make sure the added example is correct
+        solution = reader_list[41]["canonical_solution"]
+        func_def_code = fixed_prompt + solution
+        exec(func_def_code + "\n\nassert car_race_collision(3) == 9")
+
+
+def test_HumanEval_47_fix():
+    # the original prompt has a wrong example, median([-10, 4, 6, 1000, 10, 20]) should be 8.0 instead of 15.0
+    # also see https://github.com/openai/human-eval/issues/6
+    with jsonlines.open("human-eval-v2-20210705.jsonl") as reader:
+        reader_list = list(reader)
+        original_prompt = reader_list[47]["prompt"]
+        assert ">>> median([-10, 4, 6, 1000, 10, 20])\n    15.0\n" in original_prompt
+
+    # the fixed prompt has the correct example
+    with jsonlines.open("human-eval-enhanced-202305.jsonl") as reader:
+        reader_list = list(reader)
+        fixed_prompt = reader_list[47]["prompt"]
+        assert ">>> median([-10, 4, 6, 1000, 10, 20])\n    8.0\n" in fixed_prompt
+
+        # make sure the added example is correct
+        solution = reader_list[47]["canonical_solution"]
+        func_def_code = fixed_prompt + solution
+        exec(func_def_code + "\n\nassert median([-10, 4, 6, 1000, 10, 20]) == 8.0")
+
+
+def test_HumanEval_50_fix():
+    # the original prompt doesn't have examples in the docstring
+    # also the prompt is ambiguous in "encode_shift", no explicitly specifying lowercase or uppercase for input string
+    with jsonlines.open("human-eval-v2-20210705.jsonl") as reader:
+        reader_list = list(reader)
+        original_prompt = reader_list[50]["prompt"]
+        assert ">>> encode_shift" not in original_prompt
+
+    # the fixed prompt has 1 exmaple in the docstring of decode_shift
+    # we didn't add examples for encode_shift to maintain consistency with other tasks like 32 and 38
+    with jsonlines.open("human-eval-enhanced-202305.jsonl") as reader:
+        reader_list = list(reader)
+        fixed_prompt = reader_list[50]["prompt"]
+        assert ">>> decode_shift('abc')\n    'vwx'\n" in fixed_prompt
+        assert ">>> encode_shift" not in fixed_prompt
+
+        # make sure the added example is correct
+        solution = reader_list[50]["canonical_solution"]
+        func_def_code = fixed_prompt + solution
+        exec(func_def_code + "\n\nassert decode_shift('abc') == 'vwx'")
+
+
 def main():
     test_HumanEval_32_fix()
     test_HumanEval_38_fix()
+    test_HumanEval_41_fix()
+    test_HumanEval_47_fix()
+    test_HumanEval_50_fix()
 
 
 if __name__ == "__main__":
