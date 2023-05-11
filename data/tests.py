@@ -239,6 +239,7 @@ def main():
     test_HumanEval_67_fix()
     test_HumanEval_83_fix()
     test_HumanEval_95_fix()
+    test_HumanEval_163_fix()
 
 
 if __name__ == "__main__":
