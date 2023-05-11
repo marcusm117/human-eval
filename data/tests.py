@@ -181,7 +181,7 @@ def test_HumanEval_95_fix():
     # the canonical solution is wrong, and test cases don't cover that type of mistakes
     # reference https://github.com/openai/human-eval/issues/22
     # the fixed canonical solution is correct, by changing "break" to "continue" in the last else clause
-    # also, we changed the test case "assert candidate({"p":"pineapple", "A":"banana", "B":"banana"}) == False" to
+    # also, we changed 1 test case "assert candidate({"p":"pineapple", "A":"banana", "B":"banana"}) == False" to
     # "assert candidate({A":"banana", "B":"banana"，"p":"pineapple"}) == False" to capture similar mistakes
     with jsonlines.open("human-eval-enhanced-202305.jsonl") as reader:
         reader_list = list(reader)
@@ -196,8 +196,37 @@ def test_HumanEval_95_fix():
 
         # make sure the fixed canonical solution is correct
         prompt = reader_list[95]["prompt"]
-        func_def_code = prompt + fixed_canonical_solution
-        exec(func_def_code + "\n\nassert check_dict_case({\"A\":\"banana\", \"B\":\"banana\", \"p\":\"pineapple\"}) == False")
+        func_def_code = prompt + fixed_canonical_solution + fixed_tests
+        exec(func_def_code + "\n\ncheck(check_dict_case)")
+
+
+def test_HumanEval_163_fix():
+    # the canonical solution is wrong, and test cases don't cover that type of mistakes
+    # reference https://github.com/openai/human-eval/issues/20
+    # the fixed canonical solution is correct, by changing removing the lower boudning between 2 and 8
+    # also, we changed 1 test case "candidate(132, 2)" to "candidate(13, 2)" due to the length of the output
+    # and we corrected all other test cases
+    with jsonlines.open("human-eval-enhanced-202305.jsonl") as reader:
+        reader_list = list(reader)
+        fixed_canonical_solution = reader_list[163]["canonical_solution"]
+        assert "max(2, min(a, b))" not in fixed_canonical_solution
+        assert "min(8, max(a, b))" not in fixed_canonical_solution
+
+        # make sure that the test cases are changed
+        fixed_tests = reader_list[163]["test"]
+        assert "assert candidate(2, 10) == [2, 4, 6, 8]" not in fixed_tests
+        assert "assert candidate(10, 2) == [2, 4, 6, 8]" not in fixed_tests
+        assert "assert candidate(132, 2) == [2, 4, 6, 8]" not in fixed_tests
+        assert "assert candidate(17,89) == []" not in fixed_tests
+        assert "assert candidate(2, 10) == [2, 4, 6, 8, 10]" in fixed_tests
+        assert "assert candidate(10, 2) == [2, 4, 6, 8, 10]" in fixed_tests
+        assert "assert candidate(13, 2) == [2, 4, 6, 8, 10, 12]" in fixed_tests
+        assert "assert candidate(17, 89) == [18, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70, 72, 74, 76, 78, 80, 82, 84, 86, 88]" in fixed_tests
+
+        # make sure the fixed canonical solution is correct
+        prompt = reader_list[163]["prompt"]
+        func_def_code = prompt + fixed_canonical_solution + fixed_tests
+        exec(func_def_code + "\n\ncheck(generate_integers)")
 
 
 def main():
