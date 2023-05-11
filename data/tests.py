@@ -75,7 +75,7 @@ def test_HumanEval_41_fix():
 
 def test_HumanEval_47_fix():
     # the original prompt has a wrong example, median([-10, 4, 6, 1000, 10, 20]) should be 8.0 instead of 15.0
-    # also see https://github.com/openai/human-eval/issues/6
+    # reference https://github.com/openai/human-eval/issues/6
     with jsonlines.open("human-eval-v2-20210705.jsonl") as reader:
         reader_list = list(reader)
         original_prompt = reader_list[47]["prompt"]
@@ -177,6 +177,29 @@ def test_HumanEval_83_fix():
         exec(func_def_code + "\n\nassert starts_one_ends(2) == 18")
 
 
+def test_HumanEval_95_fix():
+    # the canonical solution is wrong, and test cases don't cover that type of mistakes
+    # reference https://github.com/openai/human-eval/issues/22
+    # the fixed canonical solution is correct, by changing "break" to "continue" in the last else clause
+    # also, we changed the test case "assert candidate({"p":"pineapple", "A":"banana", "B":"banana"}) == False" to
+    # "assert candidate({A":"banana", "B":"banana"，"p":"pineapple"}) == False" to capture similar mistakes
+    with jsonlines.open("human-eval-enhanced-202305.jsonl") as reader:
+        reader_list = list(reader)
+        fixed_canonical_solution = reader_list[95]["canonical_solution"]
+        assert "else:\n                break\n        return state == \"upper\" or state == \"lower\" \n" not in fixed_canonical_solution
+        assert "else:\n                continue\n        return state == \"upper\" or state == \"lower\" \n" in fixed_canonical_solution
+
+        # make sure that the test case is changed
+        fixed_tests = reader_list[95]["test"]
+        assert "assert candidate({\"p\":\"pineapple\", \"A\":\"banana\", \"B\":\"banana\"}) == False" not in fixed_tests
+        assert "assert candidate({\"A\":\"banana\", \"B\":\"banana\", \"p\":\"pineapple\"}) == False" in fixed_tests
+
+        # make sure the fixed canonical solution is correct
+        prompt = reader_list[95]["prompt"]
+        func_def_code = prompt + fixed_canonical_solution
+        exec(func_def_code + "\n\nassert check_dict_case({\"A\":\"banana\", \"B\":\"banana\", \"p\":\"pineapple\"}) == False")
+
+
 def main():
     test_HumanEval_32_fix()
     test_HumanEval_38_fix()
@@ -185,6 +208,8 @@ def main():
     test_HumanEval_50_fix()
     test_HumanEval_57_fix()
     test_HumanEval_67_fix()
+    test_HumanEval_83_fix()
+    test_HumanEval_95_fix()
 
 
 if __name__ == "__main__":
