@@ -220,6 +220,34 @@ def test_HumanEval_95_fix():
         exec(func_def_code + "\n\ncheck(check_dict_case)")
 
 
+def test_HumanEval_116_fix():
+    # the original prompt doesn't align with the canonical solution and the tests
+    # also wrong examples in prompt
+    # reference https://huggingface.co/datasets/openai_humaneval/discussions/1
+    with jsonlines.open("human-eval-v2-20210705.jsonl") as reader:
+        reader_list = list(reader)
+        original_prompt = reader_list[116]["prompt"]
+        assert "sort an array of non-negative integers according" in original_prompt
+        assert ">>> sort_array([-2, -3, -4, -5, -6]) == [-6, -5, -4, -3, -2]" in original_prompt
+        assert ">>> sort_array([1, 0, 2, 3, 4]) [0, 1, 2, 3, 4]" in original_prompt
+
+    # the fixed prompt delted "non-negative" before "integers"
+    # the 2nd example is corrected to ">>> sort_array([-2, -3, -4, -5, -6]) == [-4, -2, -6, -5, -3]"
+    # the 3rd example is corrected to ">>> sort_array([1, 0, 2, 3, 4]) == [0, 1, 2, 4, 3]"
+    with jsonlines.open("human-eval-enhanced-202306.jsonl") as reader:
+        reader_list = list(reader)
+        fixed_prompt = reader_list[116]["prompt"]
+        assert "sort an array of integers according" in fixed_prompt
+        assert ">>> sort_array([-2, -3, -4, -5, -6]) == [-4, -2, -6, -5, -3]" in fixed_prompt
+        assert ">>> sort_array([1, 0, 2, 3, 4]) == [0, 1, 2, 4, 3]" in fixed_prompt
+
+        # make sure the function definition and the fixed exmaples is correct
+        solution = reader_list[116]["canonical_solution"]
+        func_def_code = fixed_prompt + solution
+        exec(func_def_code + "\n\nassert sort_array([-2, -3, -4, -5, -6]) == [-4, -2, -6, -5, -3]")
+        exec(func_def_code + "\n\nassert sort_array([1, 0, 2, 3, 4]) == [0, 1, 2, 4, 3]")
+
+
 def test_HumanEval_163_fix():
     # the canonical solution is wrong, and test cases don't cover that type of mistakes
     # reference https://github.com/openai/human-eval/issues/20
